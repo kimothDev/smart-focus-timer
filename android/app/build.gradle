@@ -80,6 +80,62 @@ def enableProguardInReleaseBuilds = (findProperty('android.enableProguardInRelea
  */
 def jscFlavor = 'org.webkit:android-jsc:+'
 
+/**
+ * Helper function to align native libraries to 16KB page size for Android 15+ compatibility  
+ * This modifies LOAD segment p_align in program headers (not just section alignment)
+ */
+def align16KBNativeLibs(String buildVariant) {
+    // Construct path: merged_native_libs/release/mergeReleaseNativeLibs/out/lib
+    def taskName = "merge${buildVariant.capitalize()}NativeLibs"
+    def libsDir = file("${buildDir}/intermediates/merged_native_libs/${buildVariant}/${taskName}/out/lib")
+    
+    if (!libsDir.exists()) {
+        logger.warn("⚠️  Native libs directory not found: ${libsDir.absolutePath}")
+        return
+    }
+    
+    def pythonScript = file("${projectDir}/align_elf_segments.py")
+    if (!pythonScript.exists()) {
+        logger.error("❌ Python alignment script not found: ${pythonScript.absolutePath}")
+        return
+    }
+    
+    def processedCount = 0
+    def skippedCount = 0
+    def failedLibs = []
+    
+    logger.lifecycle("📦 Processing native libraries for LOAD segment alignment: ${libsDir.absolutePath}")
+    
+    libsDir.eachFileRecurse { file ->
+        if (file.name.endsWith('.so')) {
+            try {
+                logger.lifecycle("🔧 Aligning 16KB LOAD segments: ${file.name} (${String.format('%.2f', file.size() / 1024 / 1024)} MB)")
+                
+                def result = exec {
+                    commandLine 'python', pythonScript.absolutePath, file.absolutePath
+                    ignoreExitValue = true
+                }
+                
+                if (result.exitValue == 0) {
+                    processedCount++
+                } else {
+                    failedLibs.add(file.name)
+                    skippedCount++
+                }
+            } catch (Exception e) {
+                logger.error("❌ Failed to align ${file.name}: ${e.message}")
+                failedLibs.add(file.name)
+                skippedCount++
+            }
+        }
+    }
+    
+    logger.lifecycle("✅ 16KB LOAD Segment Alignment Complete: ${processedCount} processed, ${skippedCount} skipped")
+    if (failedLibs.size() > 0) {
+        logger.warn("⚠️  Failed libraries: ${failedLibs.join(', ')}")
+    }
+}
+
 android {
     ndkVersion rootProject.ext.ndkVersion
 
@@ -98,8 +154,14 @@ android {
             cmake {
                 // Force 16KB alignment for C++ segments
                 cppFlags "-Wl,-z,max-page-size=16384"
+                // Additional linker arguments for 16KB page alignment
+                arguments "-DANDROID_LD=lld",
+                          "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-z,max-page-size=16384",
+                          "-DCMAKE_EXE_LINKER_FLAGS=-Wl,-z,max-page-size=16384"
             }
         }
+        
+        // Note: ABI filters are handled by splits.abi configuration below
     }
     signingConfigs {
         debug {
@@ -211,5 +273,39 @@ dependencies {
         implementation("com.facebook.react:hermes-android")
     } else {
         implementation jscFlavor
+    }
+}
+
+/**
+ * Post-process native libraries for 16KB page alignment
+ * This runs after native libraries are merged but before APK packaging
+ * Applies to ALL builds (debug and release) for consistent testing
+ */
+afterEvaluate {
+    tasks.matching { task ->
+        // Match both debug and release merge tasks
+        task.name.contains('merge') && 
+        task.name.contains('NativeLibs') &&
+        (task.name.contains('Debug') || task.name.contains('Release'))
+    }.configureEach { mergeTask ->
+        mergeTask.doLast {
+            // Extract variant name from task name and convert to lowercase
+            // Examples: mergeDebugNativeLibs -> debug, mergeReleaseNativeLibs -> release
+            def taskName = mergeTask.name
+            def variant = taskName
+                .replaceFirst('merge', '')
+                .replaceFirst('NativeLibs', '')
+                .uncapitalize() // Convert first letter to lowercase (Release -> release)
+            
+            logger.lifecycle("")
+            logger.lifecycle("=" * 80)
+            logger.lifecycle("🔧 Starting 16KB Page Alignment for variant: ${variant}")
+            logger.lifecycle("=" * 80)
+            
+            align16KBNativeLibs(variant)
+            
+            logger.lifecycle("=" * 80)
+            logger.lifecycle("")
+        }
     }
 }
