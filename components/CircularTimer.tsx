@@ -30,6 +30,7 @@ export default function CircularTimer() {
     toggleTimeAdjust,
     adjustTime,
     getLiveTime,
+    userAcceptedRecommendation,
   } = useTimerStore();
 
   const [, forceRender] = React.useReducer(x => x + 1, 0);
@@ -145,20 +146,17 @@ export default function CircularTimer() {
                   <ChevronUp size={60} color={Colors.secondary} />
                 </TouchableOpacity>
               )}
-              {!isActive ? (
+              {( (!isActive && !userAcceptedRecommendation) || showTimeAdjust ) ? (
                 <TouchableOpacity
                   onPress={() => {
                     const store = useTimerStore.getState();
-              
-                    // if time adjustment is already showing → hide it
+
                     if (store.showTimeAdjust) {
                       useTimerStore.setState({ showTimeAdjust: false });
-                    } else {
-                      // Show the time adjustment options
-                      useTimerStore.setState({ 
-                        showTimeAdjust: true,
+                    } else if (!store.hasInteractedWithTimer && !store.userAcceptedRecommendation && !store.hasDismissedRecommendationCard) {
+                      useTimerStore.setState({
                         userAcceptedRecommendation: false,
-                        hasInteractedWithTimer: true 
+                        hasInteractedWithTimer: true
                       });
                     }
                   }}
@@ -182,7 +180,7 @@ export default function CircularTimer() {
               )}
             </View>
 
-            {!isActive && !showTimeAdjust ? (
+            {(!isActive && !showTimeAdjust) ? (
               <TouchableOpacity
                 onPress={() => {
                   useTimerStore.getState().setHasInteractedWithTimer(true);

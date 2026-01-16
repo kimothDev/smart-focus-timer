@@ -83,6 +83,7 @@ export default function RecommendationModal() {
             onPress={() => {
               acceptRecommendation();
               setHasDismissedRecommendationCard(true);
+              useTimerStore.setState({ showTimeAdjust: false });
             }}
           >
             <ThumbsUp size={16} color={Colors.card} />
