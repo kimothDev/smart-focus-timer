@@ -3,7 +3,7 @@
     "name": "SmartFocusTimer",
     "slug": "smartfocustimer",
     "owner": "kimoth",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -57,14 +57,7 @@
     "extra": {
       "router": {
         "origin": false
-      },
-      "eas": {
-        "projectId": "40fb0702-bd1b-41d6-b933-0a069d654a99"
       }
-    },
-    "runtimeVersion": "1.1.0",
-    "updates": {
-      "url": "https://u.expo.dev/657d77e6-7a11-4cf1-83fc-e25befe560ae"
     }
   }
 }
