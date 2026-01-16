@@ -1,0 +1,71 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# Dependencies
+node_modules/
+.mdFiles/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+build
+.env
+
+# Native
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# Debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# Local env files
+.env*.local
+
+# TypeScript
+*.tsbuildinfo
+.vercel
+
+# AGENTS.md (generated documentation)
+AGENTS.md
+
+# ==========================================
+# Android build artifacts & Binary Junk
+# ==========================================
+android/app/build/
+android/.gradle/
+android/app/.cxx/
+android/*.iml
+android/app/src/main/assets/index.android.bundle
+android/app/src/main/assets/index.android.bundle.meta
+local.properties
+
+# Stop tracking the huge APKs/AABs
+android/app/build/outputs/apk/*
+android/app/build/outputs/bundle/*
+
+# Block Windows reserved names
+NUL
+CON
+PRN
+AUX
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
